@@ -21,6 +21,9 @@ android {
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            // Signed with this machine's debug key so it can be installed on our own phones.
+            // Use a proper release key before distributing it anywhere.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
@@ -45,4 +48,7 @@ dependencies {
 
     implementation(libs.glance.appwidget)
     implementation(libs.glance.material3)
+    // Glance brings in WorkManager 2.7 (Room 2.2), whose keep rules no longer survive R8 and make
+    // release builds crash at startup; a current WorkManager fixes that.
+    implementation(libs.androidx.work.runtime)
 }

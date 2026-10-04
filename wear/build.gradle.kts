@@ -19,6 +19,9 @@ android {
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            // Same key as the phone app: the Data Layer only connects apps signed alike.
+            // Use a proper release key before distributing it anywhere.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 

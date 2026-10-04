@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -21,12 +22,42 @@ fun catTime(elapsedMillis: Long): Long = (elapsedMillis.coerceAtLeast(0) * Build
 /** A saved [CatState] plus the wall-clock time it was saved at. */
 data class SavedCat(val state: CatState, val savedAtMillis: Long)
 
+/**
+ * The cat's saved state on this device. Every save is also shared with the paired phone or
+ * watch through [CatSync], and states from the other device come back in through [mergeRemote].
+ */
 class CatRepository(private val context: Context) {
+
+    private val sync by lazy { CatSync(context) }
 
     suspend fun load(): SavedCat? = context.catDataStore.data.first().toSavedCat()
 
     /** Emits the saved state every time it changes, e.g. so the widget redraws after feeding. */
     fun observe(): Flow<SavedCat?> = context.catDataStore.data.map { it.toSavedCat() }
+
+    /** Pulls in whatever the other device last shared (e.g. on app start). */
+    suspend fun pullRemote() {
+        sync.fetchAll().forEach { mergeRemote(it) }
+    }
+
+    /**
+     * Merges a snapshot from the other device into the local state. Returns true if the local
+     * state changed. If the merge kept something the other device doesn't have yet (a feeding
+     * here, for example), the result is shared back so both sides end up the same.
+     */
+    suspend fun mergeRemote(remote: SavedCat): Boolean {
+        var before: SavedCat? = null
+        var merged: SavedCat? = null
+        context.catDataStore.edit { prefs ->
+            before = prefs.toSavedCat()
+            val result = before?.let { mergeCats(it, remote) } ?: remote
+            merged = result
+            if (!result.sameAs(before)) prefs.write(result)
+        }
+        val result = merged ?: return false
+        if (!result.sameAs(remote)) sync.publish(result, urgent = true)
+        return !result.sameAs(before)
+    }
 
     private fun Preferences.toSavedCat(): SavedCat? {
         val savedAt = this[SAVED_AT] ?: return null
@@ -50,14 +81,22 @@ class CatRepository(private val context: Context) {
         return fed
     }
 
-    suspend fun save(state: CatState, nowMillis: Long) {
-        context.catDataStore.edit { prefs ->
-            prefs[FULLNESS] = state.fullness
-            prefs[ENERGY] = state.energy
-            prefs[MOOD] = state.mood
-            prefs[ASLEEP] = state.asleep
-            prefs[SAVED_AT] = nowMillis
-        }
+    /**
+     * Saves locally and shares with the other device. [urgent] sends it right away; routine
+     * autosaves pass false and let the system batch them to save battery.
+     */
+    suspend fun save(state: CatState, nowMillis: Long, urgent: Boolean = true) {
+        val saved = SavedCat(state, nowMillis)
+        context.catDataStore.edit { it.write(saved) }
+        sync.publish(saved, urgent)
+    }
+
+    private fun MutablePreferences.write(saved: SavedCat) {
+        this[FULLNESS] = saved.state.fullness
+        this[ENERGY] = saved.state.energy
+        this[MOOD] = saved.state.mood
+        this[ASLEEP] = saved.state.asleep
+        this[SAVED_AT] = saved.savedAtMillis
     }
 
     private companion object {

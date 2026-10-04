@@ -1,6 +1,9 @@
 <resources>
     <string name="app_name">Howanya Life</string>
     <string name="screen_title">ほわにゃ</string>
+    <string name="sound_all">BGM＋効果音</string>
+    <string name="sound_effects_only">効果音のみ</string>
+    <string name="sound_off">音なし</string>
     <string name="feed">ごはんをあげる</string>
     <string name="cat_description">ほわにゃ</string>
     <string name="fullness">ごはん</string>

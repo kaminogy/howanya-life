@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.kamino.howanyalife.data.CatRepository
+import com.kamino.howanyalife.data.SavedCat
+import com.kamino.howanyalife.data.sameAs
 import com.kamino.howanyalife.data.catTime
 import com.kamino.howanyalife.model.BehaviorEngine
 import com.kamino.howanyalife.model.CatAction
@@ -17,6 +19,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.time.LocalTime
 import kotlin.math.abs
 import kotlin.math.sign
@@ -51,6 +54,8 @@ class CatViewModel(app: Application) : AndroidViewModel(app) {
     private var behaviorJob: Job? = null
     private var lastTickMillis = 0L
     private var pendingSave: Job? = null
+    /** What this screen last saved, to tell its own writes apart from the other device's. */
+    private var lastWritten: SavedCat? = null
 
     init {
         viewModelScope.launch {
@@ -63,6 +68,7 @@ class CatViewModel(app: Application) : AndroidViewModel(app) {
         if (session?.isActive == true) return
         session = viewModelScope.launch {
             restore()
+            launch { followSavedState() }
             launch { needsLoop() }
             startBehavior { behaviorLoop() }
         }
@@ -76,7 +82,7 @@ class CatViewModel(app: Application) : AndroidViewModel(app) {
         if (!_ui.value.loaded) return
         applyElapsedTime()
         val stats = _ui.value.stats
-        pendingSave = viewModelScope.launch { repository.save(stats, System.currentTimeMillis()) }
+        pendingSave = viewModelScope.launch { save(stats, urgent = true) }
     }
 
     /** Waits for the save started by [onPause], e.g. before refreshing the home-screen widget. */
@@ -115,6 +121,8 @@ class CatViewModel(app: Application) : AndroidViewModel(app) {
      */
     private suspend fun restore() {
         pendingSave?.join()
+        // Catch up with the paired phone/watch, but don't hold the screen up if it's unreachable.
+        withTimeoutOrNull(REMOTE_PULL_TIMEOUT_MILLIS) { repository.pullRemote() }
         val now = System.currentTimeMillis()
         val stats = repository.loadCurrent(now)
             ?: _ui.value.stats.takeIf { _ui.value.loaded }
@@ -143,8 +151,29 @@ class CatViewModel(app: Application) : AndroidViewModel(app) {
             delay(NEEDS_TICK_MILLIS)
             applyElapsedTime()
             if (++ticks % AUTOSAVE_EVERY_TICKS == 0) {
-                repository.save(_ui.value.stats, System.currentTimeMillis())
+                save(_ui.value.stats, urgent = false)
             }
+        }
+    }
+
+    private suspend fun save(stats: CatState, urgent: Boolean) {
+        val saved = SavedCat(stats, System.currentTimeMillis())
+        lastWritten = saved
+        repository.save(saved.state, saved.savedAtMillis, urgent)
+    }
+
+    /**
+     * Picks up changes made elsewhere while this screen is showing: a feeding on the paired
+     * phone or watch (merged in by CatSyncListenerService) or from the home-screen widget.
+     */
+    private suspend fun followSavedState() {
+        repository.observe().collect { saved ->
+            if (saved == null || saved.sameAs(lastWritten)) return@collect
+            val now = System.currentTimeMillis()
+            val incoming = saved.state.advance(catTime(now - saved.savedAtMillis))
+            lastTickMillis = now
+            // The cat on this screen keeps doing what it's doing, so keep its own sleep state.
+            _ui.update { it.copy(stats = incoming.copy(asleep = it.stats.asleep)) }
         }
     }
 
@@ -180,6 +209,8 @@ class CatViewModel(app: Application) : AndroidViewModel(app) {
 
         perform(CatAction.EAT, engine.durationMillis(CatAction.EAT))
         _ui.update { it.copy(stats = it.stats.fed(), bowlFull = false) }
+        // Let the other device know about the meal right away.
+        viewModelScope.launch { save(_ui.value.stats, urgent = true) }
         perform(CatAction.LAUGH, engine.durationMillis(CatAction.LAUGH))
         _ui.update { it.copy(bowlX = null) }
     }
@@ -245,6 +276,7 @@ class CatViewModel(app: Application) : AndroidViewModel(app) {
         const val FRAME_MILLIS = 33L
         const val NEEDS_TICK_MILLIS = 1_000L
         const val AUTOSAVE_EVERY_TICKS = 15
+        const val REMOTE_PULL_TIMEOUT_MILLIS = 2_000L
         const val BOWL_POSITION = 0.65f
         const val EATING_DISTANCE = 0.35f
     }

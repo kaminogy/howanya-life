@@ -3,4 +3,7 @@
     <string name="feed">ごはん</string>
     <string name="feed_description">猫にごはんをあげる</string>
     <string name="cat_description">猫</string>
+    <string name="sound_all">BGMと効果音：オン</string>
+    <string name="sound_effects_only">効果音のみ</string>
+    <string name="sound_off">音なし</string>
 </resources>

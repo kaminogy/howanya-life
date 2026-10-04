@@ -31,8 +31,11 @@ android {
 
 dependencies {
     api(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.datastore.preferences)
+    api(libs.play.services.wearable)
+    implementation(libs.kotlinx.coroutines.play.services)
 
     api(platform(libs.compose.bom))
     api(libs.compose.ui)

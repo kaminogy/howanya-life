@@ -73,3 +73,20 @@ mirrorWhenFacingLeft=false
 
 - 前景：`shared/src/main/res/drawable-nodpi/ic_launcher_foreground.png`（432×432px）。元画像を 22% に縮小し、ランチャーの丸い表示範囲に頭が収まり、下に胴体の上部が少し見える位置に配置しています。
 - 背景色：`shared/src/main/res/values/colors.xml` の `ic_launcher_background`（公式ページの黄色 `#FFF100`）。
+
+## BGM と効果音
+
+音はすべて `tools/HowanyaSounds.py` がプログラムで作曲・合成したオリジナルです（著作権の心配はありません）。`python3 tools/HowanyaSounds.py` を実行すると `shared/src/main/res/raw/` に WAV（22.05kHz・モノラル）が出力されます。
+
+| ファイル | 内容 | 鳴るタイミング |
+|---|---|---|
+| `bgm_day.wav` | 明るいチップチューン（112bpm・16小節ループ） | 昼の間 |
+| `bgm_night.wav` | オルゴールの子守唄（72bpm・8小節ループ） | 夜（22時〜6時） |
+| `sfx_feed.wav` | ポップな2音 | ごはんのお皿が出たとき |
+| `sfx_eat.wav` | もぐもぐ3回 | 食べているとき |
+| `sfx_laugh.wav` | 「にゃにゃ！」 | 笑ったとき |
+| `sfx_cry.wav` | 「にゃ〜…」 | 泣いたとき |
+| `sfx_pet.wav` | 「ぽん」 | ほわにゃをタップしたとき |
+| `sfx_stretch.wav` | あくびのような鳴き声 | 背伸びしたとき |
+
+画面のサウンドボタンで「🎵 BGM＋効果音 → 🔔 効果音のみ → 🔇 音なし」を切り替えられます（設定は保存されます）。初期値はスマホ版が BGM＋効果音、ウォッチ版が効果音のみです。ほかのアプリで音楽を再生中のときは BGM を流しません。

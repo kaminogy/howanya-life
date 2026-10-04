@@ -1,18 +1,18 @@
 package com.kamino.howanyalife.ui
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,11 +20,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -37,8 +35,8 @@ import androidx.wear.compose.material3.EdgeButtonSize
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Text
 import com.kamino.howanyalife.R
-import com.kamino.howanyalife.model.CatAction
-import kotlinx.coroutines.delay
+import com.kamino.howanyalife.data.SoundMode
+import kotlinx.coroutines.launch
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -67,6 +65,13 @@ fun CatScreen(viewModel: CatViewModel) {
         onPauseOrDispose { viewModel.onPause() }
     }
 
+    // The watch starts with sound effects only: its speaker is small and BGM costs battery.
+    val soundSettings = rememberSoundSettings(default = SoundMode.EFFECTS_ONLY)
+    val soundMode by soundSettings.mode.collectAsStateWithLifecycle(initialValue = null)
+    var petted by remember { mutableIntStateOf(0) }
+    val scope = rememberCoroutineScope()
+    CatSounds(ui, soundMode, petted)
+
     MaterialTheme {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val screen = maxWidth
@@ -86,7 +91,10 @@ fun CatScreen(viewModel: CatViewModel) {
                     .offset(x = floorX(screen, ui.x) - catSize / 2, y = screen * FLOOR_Y - catSize * 0.8f)
                     .size(catSize)
                     .semantics { contentDescription = catDescription }
-                    .clickable(interactionSource = null, indication = null) { viewModel.pet() },
+                    .clickable(interactionSource = null, indication = null) {
+                        petted++
+                        viewModel.pet()
+                    },
             )
 
             // Drawn after the cat so the food stays visible while it eats.
@@ -103,6 +111,22 @@ fun CatScreen(viewModel: CatViewModel) {
                 drawStatusArcs(ui.stats.fullness / 100f, ui.stats.energy / 100f)
             }
 
+            // Sound button at the top, between the two status arcs.
+            soundMode?.let { mode ->
+                val soundDescription = stringResource(mode.label)
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 6.dp)
+                        .size(36.dp)
+                        .semantics { contentDescription = soundDescription }
+                        .clickable { scope.launch { soundSettings.set(mode.next()) } },
+                ) {
+                    Text(mode.icon)
+                }
+            }
+
             val feedDescription = stringResource(R.string.feed_description)
             EdgeButton(
                 onClick = viewModel::feed,
@@ -117,6 +141,13 @@ fun CatScreen(viewModel: CatViewModel) {
         }
     }
 }
+
+private val SoundMode.label: Int
+    get() = when (this) {
+        SoundMode.ALL -> R.string.sound_all
+        SoundMode.EFFECTS_ONLY -> R.string.sound_effects_only
+        SoundMode.OFF -> R.string.sound_off
+    }
 
 private fun floorX(screen: Dp, x: Float): Dp = screen / 2 + screen * WALK_RANGE * x
 
