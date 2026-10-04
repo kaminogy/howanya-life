@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "HowanyaLife"
-include(":app")
+include(":shared", ":wear", ":mobile")

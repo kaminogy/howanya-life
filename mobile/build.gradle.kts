@@ -4,48 +4,45 @@ plugins {
 }
 
 android {
-    namespace = "com.kamino.howanyalife"
+    namespace = "com.kamino.howanyalife.mobile"
     compileSdk = 37
 
     defaultConfig {
+        // Same application ID as the watch app, as is usual for the phone and watch
+        // versions of one app; each keeps its own cat.
         applicationId = "com.kamino.howanyalife"
-        minSdk = 30
+        minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"
     }
 
     buildTypes {
-        debug {
-            // Debug builds: time runs 60x faster so hunger/sleep cycles can be checked quickly.
-            buildConfigField("float", "TIME_SCALE", "60f")
-        }
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
-            buildConfigField("float", "TIME_SCALE", "1f")
         }
     }
 
     buildFeatures {
         compose = true
-        buildConfig = true
     }
 }
 
 dependencies {
+    implementation(project(":shared"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
-    implementation(libs.androidx.datastore.preferences)
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
+    implementation(libs.compose.foundation)
+    implementation(libs.compose.material3)
     implementation(libs.compose.ui.tooling.preview)
-    implementation(libs.wear.compose.material3)
-    implementation(libs.wear.compose.foundation)
     debugImplementation(libs.compose.ui.tooling)
 
-    testImplementation(libs.junit)
+    implementation(libs.glance.appwidget)
+    implementation(libs.glance.material3)
 }

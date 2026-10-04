@@ -118,35 +118,6 @@ fun CatScreen(viewModel: CatViewModel) {
     }
 }
 
-/** Plays the frames for [action], or the placeholder cat when no artwork is provided. */
-@Composable
-private fun CatSprite(
-    action: CatAction,
-    frames: List<ImageBitmap>?,
-    facingRight: Boolean,
-    mirrorWhenFacingLeft: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val frameCount = frames?.size ?: PLACEHOLDER_FRAMES
-    var frame by remember { mutableIntStateOf(0) }
-    LaunchedEffect(action, frameCount) {
-        frame = 0
-        while (true) {
-            delay(1000L / action.fps)
-            frame = if (action.loop) (frame + 1) % frameCount else minOf(frame + 1, frameCount - 1)
-        }
-    }
-
-    // The placeholder is drawn side-on, so it always turns to face where it walks.
-    val mirror = !facingRight && (frames.isNullOrEmpty() || mirrorWhenFacingLeft)
-    val flip = Modifier.graphicsLayer { scaleX = if (mirror) -1f else 1f }
-    if (frames.isNullOrEmpty()) {
-        PlaceholderCat(action, frame, modifier.then(flip))
-    } else {
-        Image(bitmap = frames[frame % frames.size], contentDescription = null, modifier = modifier.then(flip))
-    }
-}
-
 private fun floorX(screen: Dp, x: Float): Dp = screen / 2 + screen * WALK_RANGE * x
 
 private fun DrawScope.drawRoom(night: Boolean) {

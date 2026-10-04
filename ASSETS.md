@@ -1,11 +1,13 @@
 # キャラクター素材の差し替え方
 
+素材・アイコン・猫のふるまいのロジックは `shared` モジュールにあり、ウォッチ版（`wear`）とスマホ版（`mobile`）の両方で使われます。
+
 動作ごとに連番の PNG を置いてビルドし直すだけで、仮の猫（コードで描いたもの）が素材の画像に切り替わります。コードの変更はいりません。
 
 ## 置き場所と名前
 
 ```
-app/src/main/assets/cat/
+shared/src/main/assets/cat/
   idle/     01.png 02.png ...   ぼーっとする
   walk/     01.png 02.png ...   歩く
   run/      01.png 02.png ...   走る
@@ -32,7 +34,7 @@ app/src/main/assets/cat/
 
 ## 左右反転の設定
 
-標準では、左へ歩くときに画像を左右反転します。正面向きのキャラクターなど反転させたくない場合は、`app/src/main/assets/cat/settings.properties` に次の1行を書いてください。
+標準では、左へ歩くときに画像を左右反転します。正面向きのキャラクターなど反転させたくない場合は、`shared/src/main/assets/cat/settings.properties` に次の1行を書いてください。
 
 ```
 mirrorWhenFacingLeft=false
@@ -50,7 +52,7 @@ mirrorWhenFacingLeft=false
 
 ## 再生速度（fps）
 
-動作ごとの 1 秒あたりのコマ数は `app/src/main/java/com/kamino/howanyalife/model/CatAction.kt` で決まっています。
+動作ごとの 1 秒あたりのコマ数は `shared/src/main/java/com/kamino/howanyalife/model/CatAction.kt` で決まっています。
 
 | 動作 | fps | ループ |
 |---|---|---|
@@ -69,5 +71,5 @@ mirrorWhenFacingLeft=false
 
 アイコンは公式画像そのものを使っています。元画像は、豊和銀行の公式キャラクター名募集ページ（公募ガイド https://koubo.jp/contest/355524 ）に掲載されている `chara_01.png`（背景透過、1114×1719px）です。
 
-- 前景：`app/src/main/res/drawable-nodpi/ic_launcher_foreground.png`（432×432px）。元画像を 22% に縮小し、ランチャーの丸い表示範囲に頭が収まり、下に胴体の上部が少し見える位置に配置しています。
-- 背景色：`app/src/main/res/values/colors.xml` の `ic_launcher_background`（公式ページの黄色 `#FFF100`）。
+- 前景：`shared/src/main/res/drawable-nodpi/ic_launcher_foreground.png`（432×432px）。元画像を 22% に縮小し、ランチャーの丸い表示範囲に頭が収まり、下に胴体の上部が少し見える位置に配置しています。
+- 背景色：`shared/src/main/res/values/colors.xml` の `ic_launcher_background`（公式ページの黄色 `#FFF100`）。

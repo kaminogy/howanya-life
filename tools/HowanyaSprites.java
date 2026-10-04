@@ -18,7 +18,7 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 
 /**
- * Generates the "Howanya" sprite frames into app/src/main/assets/cat/.
+ * Generates the "Howanya" sprite frames into shared/src/main/assets/cat/.
  *
  * Run from the project root:
  *   "/Applications/Android Studio.app/Contents/jbr/Contents/Home/bin/java" -Djava.awt.headless=true tools/HowanyaSprites.java
@@ -80,7 +80,7 @@ public class HowanyaSprites {
     }
 
     public static void main(String[] args) throws IOException {
-        File root = new File(args.length > 0 ? args[0] : "app/src/main/assets/cat");
+        File root = new File(args.length > 0 ? args[0] : "shared/src/main/assets/cat");
 
         write(root, "idle", 4, f -> {
             Pose p = new Pose();

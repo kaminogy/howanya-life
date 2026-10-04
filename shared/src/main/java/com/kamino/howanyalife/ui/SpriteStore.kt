@@ -1,9 +1,11 @@
 package com.kamino.howanyalife.ui
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import com.kamino.howanyalife.model.CatAction
 import java.io.IOException
@@ -29,6 +31,9 @@ class SpriteStore(private val context: Context) {
         }.toMap(),
         mirrorWhenFacingLeft = loadSettings().getProperty("mirrorWhenFacingLeft", "true").toBoolean(),
     )
+
+    /** The first frame of [action] as a plain Bitmap (for the home-screen widget), or null if there is no artwork. */
+    fun loadFirstFrame(action: CatAction): Bitmap? = loadFrames(action).firstOrNull()?.asAndroidBitmap()
 
     /** Optional `assets/cat/settings.properties`. */
     private fun loadSettings(): Properties = Properties().apply {

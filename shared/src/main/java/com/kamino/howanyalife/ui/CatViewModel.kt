@@ -3,8 +3,8 @@ package com.kamino.howanyalife.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.kamino.howanyalife.BuildConfig
 import com.kamino.howanyalife.data.CatRepository
+import com.kamino.howanyalife.data.catTime
 import com.kamino.howanyalife.model.BehaviorEngine
 import com.kamino.howanyalife.model.CatAction
 import com.kamino.howanyalife.model.CatState
@@ -50,6 +50,7 @@ class CatViewModel(app: Application) : AndroidViewModel(app) {
     private var session: Job? = null
     private var behaviorJob: Job? = null
     private var lastTickMillis = 0L
+    private var pendingSave: Job? = null
 
     init {
         viewModelScope.launch {
@@ -75,7 +76,12 @@ class CatViewModel(app: Application) : AndroidViewModel(app) {
         if (!_ui.value.loaded) return
         applyElapsedTime()
         val stats = _ui.value.stats
-        viewModelScope.launch { repository.save(stats, System.currentTimeMillis()) }
+        pendingSave = viewModelScope.launch { repository.save(stats, System.currentTimeMillis()) }
+    }
+
+    /** Waits for the save started by [onPause], e.g. before refreshing the home-screen widget. */
+    suspend fun awaitSaved() {
+        pendingSave?.join()
     }
 
     fun feed() {
@@ -103,25 +109,32 @@ class CatViewModel(app: Application) : AndroidViewModel(app) {
         behaviorJob = viewModelScope.launch { block() }
     }
 
+    /**
+     * Reloads the saved state every time the screen comes back, since something else
+     * (the phone's home-screen widget) may have fed the cat in the meantime.
+     */
     private suspend fun restore() {
+        pendingSave?.join()
         val now = System.currentTimeMillis()
-        if (!_ui.value.loaded) {
-            val saved = repository.load()
-            val stats = saved?.let { it.state.advance(scaled(now - it.savedAtMillis)) } ?: CatState()
-            _ui.update {
-                it.copy(
-                    loaded = true,
-                    stats = stats,
-                    action = if (stats.asleep) CatAction.SLEEP else CatAction.IDLE,
-                    night = BehaviorEngine.isNight(hourOfDay()),
-                )
-            }
-            lastTickMillis = now
-        } else {
-            applyElapsedTime()
-            // A feeding interrupted by leaving the app is abandoned.
-            _ui.update { it.copy(bowlX = null, bowlFull = false) }
+        val stats = repository.loadCurrent(now)
+            ?: _ui.value.stats.takeIf { _ui.value.loaded }
+            ?: CatState()
+        _ui.update {
+            it.copy(
+                loaded = true,
+                stats = stats,
+                action = when {
+                    stats.asleep -> CatAction.SLEEP
+                    it.action == CatAction.SLEEP -> CatAction.IDLE
+                    else -> it.action
+                },
+                // A feeding interrupted by leaving the app is abandoned.
+                bowlX = null,
+                bowlFull = false,
+                night = BehaviorEngine.isNight(hourOfDay()),
+            )
         }
+        lastTickMillis = now
     }
 
     private suspend fun needsLoop() {
@@ -137,7 +150,7 @@ class CatViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun applyElapsedTime() {
         val now = System.currentTimeMillis()
-        val elapsed = scaled(now - lastTickMillis)
+        val elapsed = catTime(now - lastTickMillis)
         lastTickMillis = now
         _ui.update {
             it.copy(stats = it.stats.advance(elapsed), night = BehaviorEngine.isNight(hourOfDay()))
@@ -225,7 +238,6 @@ class CatViewModel(app: Application) : AndroidViewModel(app) {
         return target
     }
 
-    private fun scaled(millis: Long): Long = (millis.coerceAtLeast(0) * BuildConfig.TIME_SCALE).toLong()
 
     private fun hourOfDay(): Int = LocalTime.now().hour
 
