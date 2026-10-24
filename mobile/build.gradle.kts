@@ -21,9 +21,7 @@ android {
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
-            // Signed with this machine's debug key so it can be installed on our own phones.
-            // Use a proper release key before distributing it anywhere.
-            signingConfig = signingConfigs.getByName("debug")
+            // Signing is set up in the root build.gradle.kts, shared with the watch app.
         }
     }
 
