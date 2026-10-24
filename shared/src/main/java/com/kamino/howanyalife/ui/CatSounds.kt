@@ -23,7 +23,7 @@ enum class Sfx(@param:RawRes val res: Int, val volume: Float) {
     EAT(R.raw.sfx_eat, 0.9f),
     LAUGH(R.raw.sfx_laugh, 0.9f),
     CRY(R.raw.sfx_cry, 0.8f),
-    PET(R.raw.sfx_pet, 0.7f),
+    PET(R.raw.sfx_pet1, 0.7f),
     STRETCH(R.raw.sfx_stretch, 0.8f),
 }
 

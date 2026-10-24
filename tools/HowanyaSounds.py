@@ -299,7 +299,7 @@ def sfx_pet():
     """Soft "pon" when the cat is tapped."""
     t = Track(0.3, loop=False)
     t.add(0.0, bell(freq("A5"), 0.3))
-    t.write("sfx_pet.wav", peak=0.5)
+    t.write("sfx_pet.mp3", peak=0.5)
 
 
 def sfx_stretch():
